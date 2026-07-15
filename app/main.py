@@ -11,6 +11,7 @@ from .database import Base, SessionLocal, engine
 from .errors import api_error
 from .models import Location
 from .routers import chat, locations, posts
+from .seed_posts import seed_initial_posts
 
 
 @asynccontextmanager
@@ -19,6 +20,7 @@ async def lifespan(app: FastAPI):
     db = SessionLocal()
     try:
         load_locations(db)
+        seed_initial_posts(db)
     finally:
         db.close()
     yield
