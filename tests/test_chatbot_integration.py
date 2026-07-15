@@ -1,20 +1,16 @@
 import pytest
-import os
-from fastapi.testclient import TestClient
-from app.main import app
 from app.config import settings
 
-client = TestClient(app)
-
-# 실제 OpenAI API Key가 .env에 유효하게 존재할 때만 통합 테스트가 실행되도록 설정
 API_KEY_PRESENT = (
-    settings.OPENAI_API_KEY 
-    and settings.OPENAI_API_KEY != "your_openai_api_key_here" 
-    and settings.OPENAI_API_KEY.startswith("sk-")
+    settings.openai_api_key 
+    and settings.openai_api_key != "your_openai_api_key_here" 
+    and settings.openai_api_key != "sk-test-key"
+    and settings.openai_api_key.startswith("sk-")
+    and len(settings.openai_api_key) > 20
 )
 
 @pytest.mark.skipif(not API_KEY_PRESENT, reason="실제 OpenAI API Key(sk-...)가 .env 파일에 등록되어 있지 않아 통합 테스트를 건너뜁니다.")
-def test_chatbot_live_integration():
+def test_chatbot_live_integration(client):
     """
     실제 OpenAI API와 연동하는 종단간(End-to-End) 통합 테스트
     """
@@ -46,7 +42,7 @@ def test_chatbot_live_integration():
 
 
 @pytest.mark.skipif(not API_KEY_PRESENT, reason="실제 OpenAI API Key가 등록되어 있지 않아 음식점 예외처리 통합 테스트를 건너뜁니다.")
-def test_chatbot_live_missing_restaurant_integration():
+def test_chatbot_live_missing_restaurant_integration(client):
     """
     실제 OpenAI API가 맛집/음식점 추천 시 제약 조건(미제공 답변)을 준수하는지 검증하는 통합 테스트
     """

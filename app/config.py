@@ -1,20 +1,18 @@
-import os
-from dotenv import load_dotenv
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
-# Load .env file
-load_dotenv()
 
-class Settings:
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./app.db")
-    OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
-    OPENAI_MODEL: str = os.getenv("OPENAI_MODEL", "gpt-5-mini")
-    
-    # Read CORS origins comma-separated string as a list
-    CORS_ORIGINS_RAW: str = os.getenv("CORS_ORIGINS", "http://localhost:5173")
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+    database_url: str = "sqlite:///./dongne.db"
+    openai_api_key: str = ""
+    openai_model: str = "gpt-5-mini"  # Default set to gpt-5-mini for BYOK compatibility
+    cors_origins: str = "http://localhost:5173"
+    data_dir: str = "./data/seoul"
+
     @property
-    def CORS_ORIGINS(self) -> list[str]:
-        return [origin.strip() for origin in self.CORS_ORIGINS_RAW.split(",") if origin.strip()]
-        
-    DATA_DIR: str = os.getenv("DATA_DIR", "./data/seoul")
+    def cors_origin_list(self) -> list[str]:
+        return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+
 
 settings = Settings()

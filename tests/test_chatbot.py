@@ -1,13 +1,9 @@
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
-from fastapi.testclient import TestClient
-from app.main import app
-
-client = TestClient(app)
+from unittest.mock import MagicMock, patch
 
 @pytest.fixture
 def mock_openai_chat():
-    with patch("openai.resources.chat.completions.AsyncCompletions.create", new_callable=AsyncMock) as mock_create:
+    with patch("openai.resources.chat.completions.Completions.create") as mock_create:
         # Mocking OpenAI ChatCompletion response
         mock_response = MagicMock()
         mock_choice = MagicMock()
@@ -18,7 +14,7 @@ def mock_openai_chat():
         mock_create.return_value = mock_response
         yield mock_create
 
-def test_chat_success(mock_openai_chat):
+def test_chat_success(client, mock_openai_chat):
     """
     정상적인 챗봇 질의응답 API 테스트
     """
@@ -39,7 +35,7 @@ def test_chat_success(mock_openai_chat):
     assert isinstance(data["references"], list)
     assert isinstance(data["post_references"], list)
 
-def test_chat_validation_error():
+def test_chat_validation_error(client):
     """
     필수 필드 누락 및 길이 제약 위반에 따른 422 에러 테스트
     """
@@ -52,7 +48,7 @@ def test_chat_validation_error():
     response = client.post("/api/chat", json={"message": long_message})
     assert response.status_code == 422
 
-def test_chat_missing_restaurant(mock_openai_chat):
+def test_chat_missing_restaurant(client, mock_openai_chat):
     """
     음식점 추천 문의 시 미보유 답변 제공 여부 테스트
     """
@@ -70,7 +66,7 @@ def test_chat_missing_restaurant(mock_openai_chat):
     data = response.json()
     assert "음식점" in data["reply"] or "맛집" in data["reply"] or "제공되지 않습니다" in data["reply"]
 
-def test_chat_missing_festival_date(mock_openai_chat):
+def test_chat_missing_festival_date(client, mock_openai_chat):
     """
     축제 일정(날짜) 문의 시 미보유 답변 제공 여부 테스트
     """
@@ -87,8 +83,8 @@ def test_chat_missing_festival_date(mock_openai_chat):
     data = response.json()
     assert "일정" in data["reply"] or "날짜" in data["reply"] or "보유하고 있지 않습니다" in data["reply"]
 
-@patch("openai.resources.chat.completions.AsyncCompletions.create", new_callable=AsyncMock)
-def test_chat_upstream_error(mock_create_error):
+@patch("openai.resources.chat.completions.Completions.create")
+def test_chat_upstream_error(mock_create_error, client):
     """
     OpenAI API 호출 실패 시 502 CHATBOT_UPSTREAM_ERROR 에러 반환 테스트
     """
