@@ -1,27 +1,59 @@
-from fastapi import FastAPI, Depends
-from sqlalchemy.orm import Session
+from contextlib import asynccontextmanager
 
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+
+from . import schemas
+from .config import settings
+from .data_loader import load_locations
 from .database import Base, SessionLocal, engine
-from . import models
-
-Base.metadata.create_all(bind=engine)
-
-app = FastAPI(title="FastAPI SQLite Starter")
+from .errors import api_error
+from .models import Location
+from .routers import chat, locations, posts
 
 
-def get_db():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    Base.metadata.create_all(bind=engine)
     db = SessionLocal()
     try:
-        yield db
+        load_locations(db)
     finally:
         db.close()
+    yield
 
 
-@app.get("/")
-def read_root():
-    return {"message": "FastAPI + SQLite 기본 세팅 완료"}
+app = FastAPI(title="동네방네 API", version="1.0", lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origin_list,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["*"],
+    allow_credentials=False,
+)
 
 
-@app.get("/items")
-def read_items(db: Session = Depends(get_db)):
-    return db.query(models.Item).all()
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    return JSONResponse(
+        status_code=500,
+        content=api_error(500, "INTERNAL_ERROR", "서버 내부 오류가 발생했습니다.").detail,
+    )
+
+
+api_router_prefix = "/api"
+app.include_router(locations.router, prefix=api_router_prefix)
+app.include_router(posts.router, prefix=api_router_prefix)
+app.include_router(chat.router, prefix=api_router_prefix)
+
+
+@app.get(f"{api_router_prefix}/health", response_model=schemas.HealthResponse)
+def health():
+    db = SessionLocal()
+    try:
+        locations_loaded = db.query(Location).count()
+    finally:
+        db.close()
+    return schemas.HealthResponse(status="ok", region="서울", locations_loaded=locations_loaded)
