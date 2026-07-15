@@ -2,7 +2,7 @@ from fastapi import FastAPI, Depends
 from sqlalchemy.orm import Session
 
 from .database import Base, SessionLocal, engine
-from . import models
+from . import models, schemas, chatbot
 
 Base.metadata.create_all(bind=engine)
 
@@ -25,3 +25,8 @@ def read_root():
 @app.get("/items")
 def read_items(db: Session = Depends(get_db)):
     return db.query(models.Item).all()
+
+
+@app.post("/api/chat", response_model=schemas.ChatResponse)
+async def chat_endpoint(request: schemas.ChatRequest, db: Session = Depends(get_db)):
+    return await chatbot.get_chatbot_reply(db, request.message, request.history)
