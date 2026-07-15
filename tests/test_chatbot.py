@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 from fastapi.testclient import TestClient
 from app.main import app
 
@@ -7,12 +7,14 @@ client = TestClient(app)
 
 @pytest.fixture
 def mock_openai_chat():
-    with patch("openai.resources.chat.completions.AsyncCompletions.create") as mock_create:
+    with patch("openai.resources.chat.completions.AsyncCompletions.create", new_callable=AsyncMock) as mock_create:
         # Mocking OpenAI ChatCompletion response
-        mock_response = AsyncMock()
-        mock_response.choices = [
-            AsyncMock(message=AsyncMock(content="종로구에는 아름다운 경복궁이 있습니다. 방문해보시는 것을 추천합니다."))
-        ]
+        mock_response = MagicMock()
+        mock_choice = MagicMock()
+        mock_message = MagicMock()
+        mock_message.content = "종로구에는 아름다운 경복궁이 있습니다. 방문해보시는 것을 추천합니다."
+        mock_choice.message = mock_message
+        mock_response.choices = [mock_choice]
         mock_create.return_value = mock_response
         yield mock_create
 
@@ -85,7 +87,7 @@ def test_chat_missing_festival_date(mock_openai_chat):
     data = response.json()
     assert "일정" in data["reply"] or "날짜" in data["reply"] or "보유하고 있지 않습니다" in data["reply"]
 
-@patch("openai.resources.chat.completions.AsyncCompletions.create")
+@patch("openai.resources.chat.completions.AsyncCompletions.create", new_callable=AsyncMock)
 def test_chat_upstream_error(mock_create_error):
     """
     OpenAI API 호출 실패 시 502 CHATBOT_UPSTREAM_ERROR 에러 반환 테스트
