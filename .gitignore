@@ -19,6 +19,11 @@ env/
 .env.*
 !.env.example
 
+# Test coverage
+.coverage
+.coverage.*
+htmlcov/
+
 # IDE/editor
 .vscode/
 .idea/
