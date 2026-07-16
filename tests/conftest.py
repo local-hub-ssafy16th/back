@@ -38,8 +38,8 @@ def create_post(client):
 
     def _create(category="tour", title="테스트 게시글", content="테스트 내용", password="1234"):
         resp = client.post(
-            "/api/posts",
-            json={"category": category, "title": title, "content": content, "password": password},
+            "/api/v2/posts",
+            data={"category": category, "title": title, "content": content, "password": password},
         )
         assert resp.status_code == 201, resp.text
         post_id = resp.json()["id"]

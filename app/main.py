@@ -10,7 +10,7 @@ from .data_loader import load_locations
 from .database import Base, SessionLocal, engine
 from .errors import api_error
 from .models import Location
-from .routers import chat, locations, posts
+from .routers import chat, comments, locations, posts
 from .seed_posts import seed_initial_posts
 
 
@@ -32,7 +32,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["*"],
+    allow_headers=["Content-Type", "X-Client-Id"],
     allow_credentials=False,
 )
 
@@ -47,7 +47,10 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
 
 api_router_prefix = "/api"
 app.include_router(locations.router, prefix=api_router_prefix)
-app.include_router(posts.router, prefix=api_router_prefix)
+app.include_router(posts.posts_router, prefix=api_router_prefix)
+app.include_router(posts.posts_v2_router, prefix=api_router_prefix)
+app.include_router(comments.post_comments_router, prefix=api_router_prefix)
+app.include_router(comments.comments_router, prefix=api_router_prefix)
 app.include_router(chat.router, prefix=api_router_prefix)
 
 

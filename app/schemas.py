@@ -3,6 +3,8 @@ from typing import Literal, Optional
 from pydantic import BaseModel, Field
 
 Category = Literal["tour", "food", "festival"]
+SearchScope = Literal["title", "content", "all"]
+SortOption = Literal["latest", "views", "likes", "comments"]
 
 
 # ---------- 공통 ----------
@@ -25,21 +27,8 @@ class HealthResponse(BaseModel):
 
 
 # ---------- posts ----------
-class PostBase(BaseModel):
-    title: str = Field(min_length=1, max_length=200)
-    content: str = Field(min_length=1, max_length=5000)
-
-
-class PostCreate(PostBase):
-    # 명세서 9절은 Literal(Category)을 사용하지만, 그렇게 하면 FastAPI가 미정의 category를
-    # 422로 자동 거부해 6.3절이 명시한 "400 INVALID_PARAMETER" 계약과 충돌한다.
-    # 계약을 지키기 위해 str로 받고 라우터에서 직접 400을 발생시킨다.
-    category: str
-    password: str = Field(min_length=4, max_length=20)
-
-
-class PostUpdate(PostBase):
-    password: str = Field(min_length=4, max_length=20)
+# PostCreate/PostUpdate는 multipart/form-data로 전송되므로 Pydantic 모델이 아닌
+# 라우터의 Form/File 파라미터로 직접 선언한다 (명세서 10절 참조).
 
 
 class PostDelete(BaseModel):
@@ -50,10 +39,27 @@ class PasswordVerify(BaseModel):
     password: str = Field(min_length=4, max_length=20)
 
 
+class ImageMeta(BaseModel):
+    id: int
+    url: str
+    filename: str
+    content_type: str
+    size_bytes: int
+    width: Optional[int] = None
+    height: Optional[int] = None
+    sort_order: int
+
+    model_config = {"from_attributes": True}
+
+
 class PostListItem(BaseModel):
     id: int
     category: Category
     title: str
+    view_count: int = 0
+    like_count: int = 0
+    comment_count: int = 0
+    thumbnail_url: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
@@ -62,6 +68,8 @@ class PostListItem(BaseModel):
 
 class PostDetail(PostListItem):
     content: str  # password 미포함
+    liked: bool = False
+    images: list[ImageMeta] = []
 
 
 class PostListResponse(Page):
@@ -70,6 +78,41 @@ class PostListResponse(Page):
 
 class VerifyResponse(BaseModel):
     verified: bool
+
+
+class LikeResponse(BaseModel):
+    post_id: int
+    like_count: int
+    liked: bool
+
+
+# ---------- comments ----------
+class CommentCreate(BaseModel):
+    content: str = Field(min_length=1, max_length=1000)
+    password: str = Field(min_length=4, max_length=20)
+
+
+class CommentUpdate(BaseModel):
+    content: str = Field(min_length=1, max_length=1000)
+    password: str = Field(min_length=4, max_length=20)
+
+
+class CommentDelete(BaseModel):
+    password: str = Field(min_length=4, max_length=20)
+
+
+class CommentItem(BaseModel):
+    id: int
+    post_id: int
+    content: str
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class CommentListResponse(Page):
+    items: list[CommentItem]
 
 
 # ---------- locations ----------

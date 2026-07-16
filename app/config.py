@@ -9,6 +9,9 @@ class Settings(BaseSettings):
     openai_model: str = "gpt-5-mini"  # Default set to gpt-5-mini for BYOK compatibility
     cors_origins: str = "http://localhost:5173"
     data_dir: str = "./data/seoul"
+    max_image_size_mb: int = 2
+    max_images_per_post: int = 3
+    image_max_dimension: int = 1280
 
     @property
     def cors_origin_list(self) -> list[str]:

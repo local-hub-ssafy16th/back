@@ -1,4 +1,6 @@
 CATEGORIES: set[str] = {"tour", "food", "festival"}
+SEARCH_SCOPES: set[str] = {"title", "content", "all"}
+SORT_OPTIONS: set[str] = {"latest", "views", "likes", "comments"}
 
 CONTENT_TYPE_NAMES: dict[str, str] = {
     "12": "관광지",
